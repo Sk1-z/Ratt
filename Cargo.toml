@@ -1,0 +1,7 @@
+[workspace]
+members = ["ratt", "server"]
+resolver = "2"
+
+[workspace.package]
+authors = ["Skiz"]
+
