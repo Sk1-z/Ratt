@@ -1,7 +1,7 @@
 # RATT!
 *Ratt* is a network chat application built to be *fast* and *portable* in, you guessed it, rust.
 
-[](Ratt.png)
+![Screenshot](Ratt.png) 
 
 # Installation
 Ratt can be run using the server and ratt executables in the releases tab.
