@@ -3,6 +3,7 @@ mod server;
 mod user;
 
 use com::*;
+use handle::handle;
 use server::Server;
 use std::io::*;
 use std::net::Shutdown;
@@ -12,7 +13,7 @@ use user::User;
 
 fn main() {
     // If the server fails to start
-    let server = Server::new_dbg().unwrap_or_else(|| Server::local());
+    let server = Server::new().unwrap_or_else(|| Server::local());
     printlnf!(
         "{} Server {} started on {}",
         INFO,
@@ -80,7 +81,7 @@ fn main() {
                     thread::Builder::new()
                         .name(buf.trim().to_string())
                         .spawn(move || {
-                            handle::handle(user, room_clone, conn_count_clone);
+                            handle(user, room_clone, conn_count_clone);
                         })
                         .unwrap(),
                 )

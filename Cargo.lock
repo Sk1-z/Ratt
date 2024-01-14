@@ -196,7 +196,6 @@ dependencies = [
 name = "ratt"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "com",
  "libc",
 ]
@@ -205,6 +204,7 @@ dependencies = [
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "com",
  "rand",
 ]

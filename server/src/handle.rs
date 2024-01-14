@@ -1,11 +1,10 @@
 use crate::User;
-use com::*;
-use std::fmt::Pointer;
+use chrono::Local;
+use com::{color::Color::*, *};
 use std::io::*;
-use std::net::Shutdown;
 use std::sync::{Arc, Mutex};
 
-pub fn handle_dc(
+fn handle_dc(
     dc: bool,
     user: &User,
     room: &Arc<Mutex<Vec<Option<User>>>>,
@@ -42,7 +41,6 @@ pub fn handle_dc(
 
 pub fn handle(user: User, room: Arc<Mutex<Vec<Option<User>>>>, conn_count: Arc<Mutex<usize>>) {
     let mut reader = BufReader::new(&user.conn);
-    // let mut writer = BufWriter::new(&user.conn);
     let mut buf = String::new();
 
     loop {
@@ -72,17 +70,20 @@ pub fn handle(user: User, room: Arc<Mutex<Vec<Option<User>>>>, conn_count: Arc<M
             }
         }
 
-        let msg = format!("{} {}", user.tag(), buf);
+        let msg = format!(
+            "{}{}{} {} {}",
+            CYAN.as_string(),
+            Local::now().format("%H:%M"),
+            RESET.as_string(),
+            user.tag(),
+            buf
+        );
         for client in room.lock().unwrap().iter() {
             if let Some(client) = client {
-                let mut w = BufWriter::new(&client.conn);
-                w.write(msg.as_bytes()).unwrap();
-                w.flush().unwrap();
+                let mut writer = BufWriter::new(&client.conn);
+                writer.write(msg.as_bytes()).unwrap();
+                writer.flush().unwrap();
             }
         }
-
-        // writer.write(msg.as_bytes()).unwrap();
-        // writer.flush().unwrap();
-        printf!("{}", msg);
     }
 }

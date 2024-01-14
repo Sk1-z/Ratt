@@ -1,9 +1,13 @@
-// use chrono::Local;
-// Local::now().format("%H:%M")
+mod display;
+mod handle;
 
 use com::{color::Color::*, *};
+use display::Display;
+use handle::Handle;
+use libc::{ioctl, winsize, TIOCGWINSZ};
 use std::io::*;
-use std::net::{Shutdown, TcpStream};
+use std::net::TcpStream;
+use std::os::fd::AsRawFd;
 
 fn main() {
     let username: String = {
@@ -12,15 +16,13 @@ fn main() {
         stdin().read_line(&mut str).unwrap();
         str.trim().to_string()
     };
-    // let username = String::from("Root");
 
-    // let addr: String = {
-    //     let mut str = String::new();
-    //     printf!("Server address[ipv4:port] ->  ");
-    //     stdin().read_line(&mut str).unwrap();
-    //     str.trim().to_string()
-    // };
-    let addr = String::from("0.0.0.0:1024");
+    let addr: String = {
+        let mut str = String::new();
+        printf!("Server address[ipv4:port] ->  ");
+        stdin().read_line(&mut str).unwrap();
+        str.trim().to_string()
+    };
 
     let client = TcpStream::connect(addr);
     match client {
@@ -35,42 +37,34 @@ fn main() {
             reader.read_line(&mut buf).unwrap();
 
             if buf != format!("{} Room filled. Shutting down..\n", ERR) {
-                printlnf!(
-                    "{}{} Connected to {} on {}{}{}",
-                    CYAN.as_string(),
+                let winsz: winsize = winsize {
+                    ws_row: 0,
+                    ws_col: 0,
+                    ws_xpixel: 0,
+                    ws_ypixel: 0,
+                };
+
+                unsafe {
+                    ioctl(stdout().as_raw_fd(), TIOCGWINSZ, &winsz);
+                }
+
+                let mut display = Display::new(winsz);
+
+                display.header();
+                display.input();
+                display.prompt();
+                display.message(&format!("{} Use '!q' to quit", INFO));
+                display.message(&format!(
+                    "{} Connected to {} on {}{}{}",
                     INFO,
                     buf.trim(),
                     CYAN.as_string(),
                     client.peer_addr().unwrap(),
                     RESET.as_string(),
-                );
+                ));
 
-                loop {
-                    buf.clear();
-                    printf!("{}->{} ", GREEN.as_string(), RESET.as_string());
-                    stdin().read_line(&mut buf).unwrap();
-
-                    if buf.as_bytes()[0] == b'!' {
-                        match buf.as_bytes()[1] {
-                            b'q' => {
-                                writer.write(b"!q\n").unwrap();
-                                writer.flush().unwrap();
-                                client.shutdown(Shutdown::Both).unwrap();
-                                printlnf!("{} Shutting down..", INFO);
-                                break;
-                            }
-                            _ => {
-                                printlnf!("{} Invalid command, Use !h to view all.", ERR)
-                            }
-                        }
-                    } else {
-                        writer.write(buf.as_bytes()).unwrap();
-                        writer.flush().unwrap();
-                        buf.clear();
-                        reader.read_line(&mut buf).unwrap();
-                        printf!("{}", buf);
-                    }
-                }
+                let handle = Handle::new(&client);
+                handle.handle(&mut display);
             } else {
                 printlnf!("{}", buf);
             }

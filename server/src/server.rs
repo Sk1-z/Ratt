@@ -10,7 +10,7 @@ pub struct Server {
 
 impl Server {
     pub fn new() -> Option<Server> {
-        printf!("{} Server name -> ", BLUE.as_string());
+        printf!("{}Server name -> ", BLUE.as_string());
         let mut name: String = String::new();
         stdin().read_line(&mut name).unwrap();
         name = name.trim().to_string();
