@@ -14,6 +14,6 @@ Now, if you are a user, then you must run the ratt executable in order to join t
 
 # Features
 - Vibrant yet simple text based user interface
-- Safe: Server will keep chugging regardless of what the client does
-- Portable and can run on any platform
+- Server cannot be interfered with by client
+- Small and fast
 
