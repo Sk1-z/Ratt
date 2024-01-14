@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+com = { path = "../com" }
+chrono = "0.4.31"
 libc = "0.2.152"
-

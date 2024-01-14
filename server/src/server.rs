@@ -1,4 +1,4 @@
-use super::printf;
+use com::{color::Color::*, *};
 use std::io::{stdin, stdout, Write};
 use std::net::TcpListener;
 
@@ -10,7 +10,7 @@ pub struct Server {
 
 impl Server {
     pub fn new() -> Option<Server> {
-        printf!("\x1b[1;34mServer name -> ");
+        printf!("{} Server name -> ", BLUE.as_string());
         let mut name: String = String::new();
         stdin().read_line(&mut name).unwrap();
         name = name.trim().to_string();
@@ -20,7 +20,7 @@ impl Server {
         stdin().read_line(&mut max).unwrap();
         let max_conn = max.trim().parse::<usize>();
         if let Err(err) = max_conn {
-            println!("\r\x1b[1;31m[ERROR]\x1b[0m {}", err);
+            println!("\r{} {}", ERR, err);
             return None;
         }
 
@@ -29,7 +29,7 @@ impl Server {
         stdin().read_line(&mut addr).unwrap();
         let conn = TcpListener::bind(addr.trim());
         if let Err(err) = conn {
-            println!("\r\x1b[1;31m[ERROR]\x1b[0m {}", err);
+            println!("\r{} {}", ERR, err);
             return None;
         }
 

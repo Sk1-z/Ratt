@@ -1,4 +1,4 @@
-// use rand::prelude::*;
+use com::color::Color::*;
 use std::net::TcpStream;
 
 pub struct User {
@@ -16,6 +16,15 @@ impl User {
             conn,
             id,
         }
+    }
+
+    pub fn tag(&self) -> String {
+        format!(
+            "\x1b[38;5;{}m[{}]{}",
+            self.color,
+            self.name,
+            RESET.as_string()
+        )
     }
 }
 

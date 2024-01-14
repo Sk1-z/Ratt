@@ -1,33 +1,14 @@
-const INFO: &'static str = "\x1b[1;36m[INFO]\x1b[0m";
-const ERR: &'static str = "\x1b[1;31m[ERROR]\x1b[0m";
-// const SERVER: &'static str = "\x1b[38;2;160;35;50m[SERVER]\x1b[0m";
-// const CLIENT: &'static str = "\x1b[1;93m[YOU]\x1b[0m";
-
+mod handle;
 mod server;
 mod user;
 
-use std::io::*;
-use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
-
+use com::*;
 use server::Server;
+use std::io::*;
+use std::net::Shutdown;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use user::User;
-
-#[macro_export]
-macro_rules! printf {
-    ($($fmt:tt)*) => {{
-        print!($($fmt)*);
-        stdout().flush().unwrap();
-    }};
-}
-
-#[macro_export]
-macro_rules! printlnf {
-    ($($fmt:tt)*) => {{
-        println!($($fmt)*);
-        stdout().flush().unwrap();
-    }};
-}
 
 fn main() {
     // If the server fails to start
@@ -39,6 +20,7 @@ fn main() {
         server.conn.local_addr().unwrap(),
     );
 
+    let mut thread_pool: Vec<thread::JoinHandle<()>> = Vec::new();
     // Mutex to access the vec on all threads, arc because borrow checker can smd
     let room: Arc<Mutex<Vec<Option<User>>>> = Arc::new(Mutex::new(Vec::new()));
     let conn_count: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
@@ -48,6 +30,10 @@ fn main() {
             Ok(client) => {
                 if server.full(*conn_count.lock().unwrap()) {
                     printlnf!("{} Server cannot accept anymore connections", ERR);
+                    BufWriter::new(&client)
+                        .write(format!("{} Room filled. Shutting down..\n", ERR).as_bytes())
+                        .unwrap();
+                    client.shutdown(Shutdown::Both).unwrap();
                     continue;
                 }
 
@@ -61,30 +47,51 @@ fn main() {
                 printlnf!(
                     "{} {} Joined. Users Active: {}",
                     INFO,
-                    buf.trim().to_string(),
+                    buf.trim(),
                     *conn_count.lock().unwrap()
                 );
 
+                for client in room.lock().unwrap().iter() {
+                    if let Some(client) = client {
+                        let mut w = BufWriter::new(&client.conn);
+                        w.write(format!("{} {} has joined!\n", SERVER, buf.trim()).as_bytes())
+                            .unwrap();
+                        w.flush().unwrap();
+                    }
+                }
+
                 let user = User::new(
                     buf.trim().to_string(),
-                    // Client clone is not needed for production. After initialization user gets moved
-                    // to thread.
                     client.try_clone().unwrap(),
                     room.lock().unwrap().len(),
                 );
 
-                room.lock().unwrap().push(Some(user));
+                room.lock().unwrap().push(Some(user.clone()));
 
-                // This should go inside thread.
                 writer
-                    .write(format!("Welcome {}!\n", buf.trim().to_string()).as_bytes())
+                    .write(format!("{}\n", server.name).as_bytes())
                     .unwrap();
+                writer.flush().unwrap();
 
-                break;
+                let room_clone = Arc::clone(&room);
+                let conn_count_clone = Arc::clone(&conn_count);
+
+                thread_pool.push(
+                    thread::Builder::new()
+                        .name(buf.trim().to_string())
+                        .spawn(move || {
+                            handle::handle(user, room_clone, conn_count_clone);
+                        })
+                        .unwrap(),
+                )
             }
             Err(err) => {
                 printlnf!("{} {}", ERR, err);
             }
         }
+    }
+
+    for thread in thread_pool {
+        thread.join().unwrap();
     }
 }
